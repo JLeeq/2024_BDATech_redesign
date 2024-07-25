@@ -8,7 +8,6 @@
 3.  .env 파일, api key 파일을 구성
 (
 AZURE_OPENAI_API_KEY=***************
-\n
 AZURE_OPENAI_DEPLOYMENT=gpt-4o
 AZURE_OPENAI_ENDPOINT=https://magicecoleai.openai.azure.com/
 AZURE_OPENAI_REGION=eastus2
