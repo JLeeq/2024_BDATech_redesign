@@ -56,11 +56,15 @@ retriever = similarity_retriever
 #---------------------------------------------------------------------
 
 # 시스템 프롬프트 설정
+
 system_prompt_str = """
-You are an assistant for identifying and extracting key phrases or keywords from a given context that are useful for further searches in an encyclopedia or database. Ensure the keywords are specific and provide sufficient context for comprehensive searches.
-Extract specific and contextually rich keywords from the given news article that are useful for encyclopedia search. Each keyword must contain the source of the keyword.
-For example, instead of 'medical issue', use 'Joe Biden's medical issue'. Instead of "inflation", use 'inflation of US'. Use the following pieces of retrieved context to answer the question. Instead of "a peaceful solution", use "a peaceful solution to the war in Ukraine". Instead of "Conditions for the end of the war", use " in Ukraine". Use "conditions for establishing an allegation of breach of duty" instead of "alleged breach of duty". Don't put simple facts like "67 polls Trump 47.4% Harris 45.4%" as keywords.
+You are an assistant for identifying and extracting key phrases or keywords from a given context that are new and useful for further searches in an encyclopedia or database. Ensure the keywords are specific and provide sufficient context for comprehensive searches.
+Extract 50 or more specific and contextually rich keywords from the given news article that are useful for encyclopedia search. Include sufficient context to make the keywords longer and more descriptive. Exclude names of people, titles, company names, promotional phrases, dates, and times from the results.
 {context} """.strip()
+
+
+
+
 
 prompt_template = ChatPromptTemplate.from_messages(
     [
@@ -78,13 +82,18 @@ question_answer_chain = create_stuff_documents_chain(azure_model, prompt_templat
 rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
 
-chain_output = rag_chain.invoke({"input":title_text})
+# 키워드 추출 반복
+all_keywords = set()
+while len(all_keywords) < 50:
+    chain_output = rag_chain.invoke({"input": title_text})
+    # 추출한 키워드를 리스트로 저장하고 넘버링 제거
+    keywords_with_numbers = chain_output["answer"].split("\n")
+    keywords = [keyword.split(' ', 1)[1].strip().strip('"') for keyword in keywords_with_numbers if keyword.strip()]
+    all_keywords.update(keywords)
+    if len(keywords_with_numbers) < 50:  # 만약 한번에 50개 이하만 추출됐다면 반복 종료
+        break
 
-#print("\n",chain_output,"\n")
-#print(f"LLM : {chain_output["answer"]}")
-
-# 추출한 키워드를 리스트로 저장하고 넘버링 제거
-keywords_with_numbers = chain_output["answer"].split("\n")
-keywords = [keyword.split(' ', 1)[1].strip().strip('"') for keyword in keywords_with_numbers if keyword.strip()]
+# 최종 50개의 키워드 추출
+final_keywords = list(all_keywords)[:50]
 
 print("Extracted Keywords:", keywords)
